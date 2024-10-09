@@ -14,6 +14,7 @@ This repository contains a CloudFormation template that creates a CRUD (Create, 
 - [Usage](#usage)
   - [Using the AWS Console](#using-the-aws-console)
   - [Using the AWS CLI](#using-the-aws-cli)
+  - [Using Postman](#using-postman)
 
 ## Overview
 
@@ -32,6 +33,7 @@ This CloudFormation template creates the following resources:
 
 - An AWS account with the necessary permissions to create the resources in the CloudFormation template.
 - AWS CLI installed and configured on your local machine.
+- Postman installed on your local machine.
 
 ## Deployment
 
@@ -125,3 +127,13 @@ After the CloudFormation stack has been successfully created, you can use the CR
      ```
 
    Replace `<API_GATEWAY_ID>` with the actual API Gateway ID from the CloudFormation stack outputs or the API Gateway console, and `<ID>` with the ID of the item you want to update or delete.
+
+### Using Postman
+
+1. Open Postman on your local machine.
+2. Create a new request and set the HTTP method to the desired CRUD operation (POST, GET, PUT, or DELETE).
+3. Set the URL to the API Gateway endpoint URL, including the appropriate path (e.g., `/items` for creating an item, `/items/<ID>` for updating or deleting an item).
+4. In the request body, include the necessary data for the CRUD operation (e.g., `{"ID": "1234", "Cliente": "John Doe", "Produto": "Product A"}` for creating an item).
+5. Send the request and observe the response.
+
+Postman provides a user-friendly interface to interact with the CRUD API, and it can be a convenient alternative to using the AWS CLI.
