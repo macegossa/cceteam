@@ -32,14 +32,21 @@ This CloudFormation template creates the following resources:
 
 ## Solution-Architecture
 
+![My Image](./architecture.png)
 
-1. **:Scalability**:: AWS Lambda and DynamoDB are both highly scalable services, allowing the infrastructure to automatically scale up or down based on demand, without the need for manual intervention.
-2. **:Serverless Architecture**:: By using AWS Lambda, the application logic is decoupled from the infrastructure management, enabling a serverless architecture. This reduces the operational overhead and allows the team to focus on developing the application functionality.
-3. **:Flexibility**:: The combination of API Gateway, Lambda, and DynamoDB provides a flexible and modular architecture, making it easy to extend or modify the application in the future.
-4. **:Cost-Effectiveness**:: With a serverless architecture, you only pay for the resources you use, rather than for provisioned capacity. This can result in significant cost savings, especially for applications with variable or unpredictable traffic patterns.
-5. **:Reliability**:: AWS managed services, such as DynamoDB and API Gateway, provide high availability and durability, ensuring the application remains reliable and fault-tolerant.
-6. **:Simplified Development**:: The abstraction of infrastructure management allows developers to focus on building the application logic, rather than worrying about provisioning and maintaining servers.
-7. **:Integrated Services**:: The integration between API Gateway, Lambda, and DynamoDB simplifies the development and deployment process, as they work seamlessly together.
+- Rest API endpoint where data can be sent in a JSON format.
+- NoSQL database to persist the JSON.
+- Scheduler At a weekly interval, generating a summary file containing the total number of items of the DB being generated from the datastore and stored in a S3 bucket.
+
+Benefits of Serverless Architecture
+
+1. **Scalability**:: AWS Lambda and DynamoDB are both highly scalable services, allowing the infrastructure to automatically scale up or down based on demand, without the need for manual intervention.
+2. **Serverless Architecture**:: By using AWS Lambda, the application logic is decoupled from the infrastructure management, enabling a serverless architecture. This reduces the operational overhead and allows the team to focus on developing the application functionality.
+3. **Flexibility**:: The combination of API Gateway, Lambda, and DynamoDB provides a flexible and modular architecture, making it easy to extend or modify the application in the future.
+4. **Cost-Effectiveness**:: With a serverless architecture, you only pay for the resources you use, rather than for provisioned capacity. This can result in significant cost savings, especially for applications with variable or unpredictable traffic patterns.
+5. **Reliability**:: AWS managed services, such as DynamoDB and API Gateway, provide high availability and durability, ensuring the application remains reliable and fault-tolerant.
+6. **Simplified Development**:: The abstraction of infrastructure management allows developers to focus on building the application logic, rather than worrying about provisioning and maintaining servers.
+7. **Integrated Services**:: The integration between API Gateway, Lambda, and DynamoDB simplifies the development and deployment process, as they work seamlessly together.
 
 ## Prerequisites
 
