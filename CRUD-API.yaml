@@ -1,0 +1,265 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+  # DynamoDB Table
+  MyDynamoDBTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: CrudApiTable
+      AttributeDefinitions:
+        - AttributeName: ID
+          AttributeType: S
+      KeySchema:
+        - AttributeName: ID
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+
+  # Lambda Function
+  CrudLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: CrudLambdaFunction
+      Handler: index.lambda_handler
+      Runtime: python3.9
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          import json
+          import boto3
+          import os
+
+          dynamodb = boto3.resource('dynamodb')
+          table = dynamodb.Table(os.environ['TABLE_NAME'])
+
+          def lambda_handler(event, context):
+              http_method = event['httpMethod']
+              if http_method == 'POST':
+                  return create_item(event)
+              elif http_method == 'GET':
+                  return get_items(event)
+              elif http_method == 'PUT':
+                  return update_item(event)
+              elif http_method == 'DELETE':
+                  return delete_item(event)
+              else:
+                  return {
+                      'statusCode': 405,
+                      'body': json.dumps({'message': 'Method Not Allowed'})
+                  }
+
+          def create_item(event):
+              body = json.loads(event['body'])
+              table.put_item(Item={'ID': body['ID'], 'Cliente': body['Cliente'], 'Produto': body['Produto']})
+              return {
+                  'statusCode': 200,
+                  'body': json.dumps({'message': 'Item created'})
+              }
+
+          def get_items(event):
+              items = table.scan()
+              return {
+                  'statusCode': 200,
+                  'body': json.dumps(items['Items'])
+              }
+
+          def update_item(event):
+              body = json.loads(event['body'])
+              table.update_item(
+                  Key={'ID': event['pathParameters']['id']},
+                  UpdateExpression="set Cliente=:n, Produto=:i",
+                  ExpressionAttributeValues={':n': body['Cliente'], ':i': body['Produto']},
+                  ReturnValues="UPDATED_NEW"
+              )
+              return {
+                  'statusCode': 200,
+                  'body': json.dumps({'message': 'Item updated'})
+              }
+
+          def delete_item(event):
+              table.delete_item(Key={'ID': event['pathParameters']['id']})
+              return {
+                  'statusCode': 200,
+                  'body': json.dumps({'message': 'Item deleted'})
+              }
+
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref MyDynamoDBTable
+
+  # Lambda Execution Role
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: LambdaDynamoDBPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:PutItem
+                  - dynamodb:GetItem
+                  - dynamodb:Scan
+                  - dynamodb:UpdateItem
+                  - dynamodb:DeleteItem
+                Resource: !GetAtt MyDynamoDBTable.Arn
+
+  # API Gateway Rest API
+  ApiGatewayRestApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: CrudApi
+      Description: "CRUD API for Lambda and DynamoDB"
+
+  # API Gateway Resources and Methods
+  ApiGatewayResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt ApiGatewayRestApi.RootResourceId
+      PathPart: items
+      RestApiId: !Ref ApiGatewayRestApi
+
+  # ANY Method for Create
+  ApiGatewayAnyMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: ANY
+      ResourceId: !Ref ApiGatewayResource
+      RestApiId: !Ref ApiGatewayRestApi
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri: !Sub
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${CrudLambdaFunction.Arn}/invocations
+          - {}
+
+  # Deploy the API
+  ApiGatewayDeployment:
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId: !Ref ApiGatewayRestApi
+      StageName: Prod
+    DependsOn:
+      - ApiGatewayAnyMethod
+
+  # Permission for API Gateway to Invoke Lambda
+  LambdaApiInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref CrudLambdaFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayRestApi}/*/*"
+
+  # S3 Bucket with Random Suffix
+  SummaryS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      # Combine the bucket name with random components to make it unique
+      BucketName: !Sub "my-dynamodb-summary-bucket-${AWS::AccountId}"
+
+
+  # Lambda Function for Generating Summary
+  GenerateSummaryLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: GenerateSummaryLambdaFunction
+      Handler: index.lambda_handler
+      Runtime: python3.9
+      Role: !GetAtt LambdaExecutionRoleForSummary.Arn
+      Code:
+        ZipFile: |
+          import json
+          import boto3
+          import os
+          from datetime import datetime
+
+          dynamodb = boto3.resource('dynamodb')
+          s3 = boto3.client('s3')
+
+          def lambda_handler(event, context):
+              # Get DynamoDB Table
+              table = dynamodb.Table(os.environ['TABLE_NAME'])
+
+              # Scan DynamoDB Table to get all items
+              response = table.scan()
+              item_count = response['Count']
+
+              # Generate summary
+              summary_data = {
+                  'timestamp': str(datetime.utcnow()),
+                  'total_items': item_count
+              }
+
+              # Store the summary in S3 bucket
+              bucket_name = os.environ['BUCKET_NAME']
+              file_name = f"summary_{datetime.utcnow().strftime('%Y-%m-%d_%H-%M-%S')}.json"
+
+              s3.put_object(
+                  Bucket=bucket_name,
+                  Key=file_name,
+                  Body=json.dumps(summary_data)
+              )
+
+              return {
+                  'statusCode': 200,
+                  'body': json.dumps({
+                      'message': 'Summary generated and uploaded to S3',
+                      'file_name': file_name,
+                      'total_items': item_count
+                  })
+              }
+
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref MyDynamoDBTable
+          BUCKET_NAME: !Ref SummaryS3Bucket
+
+  # Lambda Execution Role
+  LambdaExecutionRoleForSummary:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: LambdaS3DynamoDBPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:Scan
+                  - s3:PutObject
+                Resource:
+                  - !GetAtt MyDynamoDBTable.Arn
+                  - !Sub arn:aws:s3:::${SummaryS3Bucket}/*
+
+  # EventBridge Rule for Weekly Invocation
+  WeeklyEventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      ScheduleExpression: 'rate(7 days)'  # This will run the Lambda every 7 days (weekly)
+      Targets:
+        - Arn: !GetAtt GenerateSummaryLambdaFunction.Arn
+          Id: "GenerateSummaryLambdaFunction"
+
+  # Permission for EventBridge to invoke Lambda
+  LambdaInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref GenerateSummaryLambdaFunction
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt WeeklyEventRule.Arn
