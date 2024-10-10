@@ -1,4 +1,4 @@
-# cceteam
+# Welcome CCE Team
 
 # CRUD API with DynamoDB and Lambda
 
@@ -16,6 +16,7 @@ This repository contains a CloudFormation template that creates a CRUD (Create, 
   - [Using the AWS Console](#using-the-aws-console)
   - [Using the AWS CLI](#using-the-aws-cli)
   - [Using Postman](#using-postman)
+- [Pipeline](#pipeline)
 
 ## Overview
 
@@ -156,3 +157,29 @@ After the CloudFormation stack has been successfully created, you can use the CR
 5. Send the request and observe the response.
 
 Postman provides a user-friendly interface to interact with the CRUD API, and it can be a convenient alternative to using the AWS CLI.
+
+1. POST Example:
+   
+![POST](./postsample.JPG)
+
+2. GET Example:
+   
+![GET](./getsample.JPG)
+
+
+## Pipeline
+Most organizations create multiple AWS accounts because they provide the highest level of resource and security isolation. See below the example for the Use Case:
+
+![PIPELINE](./pipeline.png)
+
+**DevAccount**
+Developers check the code into an AWS CodeCommit repository. It stores all the repositories as a single source of truth for application code. Developers have full control over this account. This account is usually used as a sandbox for developers.
+
+**ToolsAccount**
+A central location for all the tools related to the organization, including continuous delivery/deployment services such as AWS CodePipeline and AWS CodeBuild. Developers have limited/read-only access in this account. The Operations team has more control.
+
+**TestAccount**
+Applications using the CI/CD orchestration for test purposes are deployed from this account. Developers and the Operations team have limited/read-only access in this account.
+
+**ProdAccount**
+Applications using the CI/CD orchestration tested in the ToolsAccount are deployed to production from this account. Developers and the Operations team have limited/read-only access in this account.
