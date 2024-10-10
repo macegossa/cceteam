@@ -6,6 +6,7 @@ This repository contains a CloudFormation template that creates a CRUD (Create, 
 
 ## Table of Contents
 - [Overview](#overview)
+- [Solution Architecture](#Solution-Architecture)
 - [Prerequisites](#prerequisites)
 - [Deployment](#deployment)
   - [Clone the repository](#clone-the-repository)
@@ -20,7 +21,7 @@ This repository contains a CloudFormation template that creates a CRUD (Create, 
 
 This CloudFormation template creates the following resources:
 
-1. **DynamoDB Table**: A DynamoDB table named `CrudApiTable` with a partition key of `ID`.
+1. **DynamoDB Table**: A DynamoDB table named `CrudApiTable` with a partition key of `ID`. This is the only required parameter, all others are flexible.
 2. **Lambda Function**: A Lambda function named `CrudLambdaFunction` that handles the CRUD operations for the DynamoDB table.
 3. **API Gateway Rest API**: An API Gateway REST API named `CrudApi` with a resource named `items` and an `ANY` method that invokes the `CrudLambdaFunction`.
 4. **Lambda Execution Role**: An IAM role that grants the Lambda function the necessary permissions to access the DynamoDB table.
@@ -28,6 +29,17 @@ This CloudFormation template creates the following resources:
 6. **Lambda Function for Generating Summary**: A Lambda function named `GenerateSummaryLambdaFunction` that scans the DynamoDB table, generates a summary of the total items, and stores the summary in an S3 bucket.
 7. **S3 Bucket**: An S3 bucket named `my-dynamodb-summary-bucket-<AWS_ACCOUNT_ID>` to store the generated summaries.
 8. **EventBridge Rule**: A CloudWatch Events rule that triggers the `GenerateSummaryLambdaFunction` every 7 days (weekly).
+
+## Solution-Architecture
+
+
+1. **:Scalability**:: AWS Lambda and DynamoDB are both highly scalable services, allowing the infrastructure to automatically scale up or down based on demand, without the need for manual intervention.
+2. **:Serverless Architecture**:: By using AWS Lambda, the application logic is decoupled from the infrastructure management, enabling a serverless architecture. This reduces the operational overhead and allows the team to focus on developing the application functionality.
+3. **:Flexibility**:: The combination of API Gateway, Lambda, and DynamoDB provides a flexible and modular architecture, making it easy to extend or modify the application in the future.
+4. **:Cost-Effectiveness**:: With a serverless architecture, you only pay for the resources you use, rather than for provisioned capacity. This can result in significant cost savings, especially for applications with variable or unpredictable traffic patterns.
+5. **:Reliability**:: AWS managed services, such as DynamoDB and API Gateway, provide high availability and durability, ensuring the application remains reliable and fault-tolerant.
+6. **:Simplified Development**:: The abstraction of infrastructure management allows developers to focus on building the application logic, rather than worrying about provisioning and maintaining servers.
+7. **:Integrated Services**:: The integration between API Gateway, Lambda, and DynamoDB simplifies the development and deployment process, as they work seamlessly together.
 
 ## Prerequisites
 
